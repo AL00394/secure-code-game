@@ -12,22 +12,32 @@ Follow the instructions below to get started:
 '''
 
 from collections import namedtuple
+from decimal import Decimal, ROUND_HALF_UP
 
 Order = namedtuple('Order', 'id, items')
 Item = namedtuple('Item', 'type, description, amount, quantity')
 
+PAYABLE_FOR_AN_ORDER = Decimal('1000000')
+
 def validorder(order: Order):
-    net = 0
+    payment = Decimal('0')
+    total = Decimal('0')
 
     for item in order.items:
         if item.type == 'payment':
-            net += item.amount
+            payment += Decimal(item.amount)
         elif item.type == 'product':
-            net -= item.amount * item.quantity
+            total += Decimal(item.amount) * Decimal(item.quantity)
         else:
             return "Invalid item type: %s" % item.type
 
-    if net != 0:
-        return "Order ID: %s - Payment imbalance: $%0.2f" % (order.id, net)
+    # 計算結果を2桁に丸める
+    payment = payment.quantize(Decimal('.01'))
+    total = total.quantize(Decimal('.01'))
+
+    if payment.compare(PAYABLE_FOR_AN_ORDER) > 0 or total.compare(PAYABLE_FOR_AN_ORDER) > 0:
+        return "Total amount payable for an order exceeded"
+    elif payment != total:
+        return "Order ID: %s - Payment imbalance: $%0.2f" % (order.id, payment - total)
     else:
         return "Order ID: %s - Full payment received!" % order.id
