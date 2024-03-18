@@ -37,9 +37,6 @@ app.post("/ufo/upload", upload.single("file"), (req, res) => {
   res.status(200).send("File uploaded successfully.");
 });
 
-const doctypeRegex = /<!DOCTYPE\s+([^>]+)>/i;
-const entityRegex = /<!ENTITY\s+([^>]+)>/i;
-
 app.post("/ufo", (req, res) => {
   const contentType = req.headers["content-type"];
 
@@ -48,16 +45,15 @@ app.post("/ufo", (req, res) => {
     res.status(200).json({ ufo: "Received JSON data from an unknown planet." });
   } else if (contentType === "application/xml") {
     // Check for dangerous entities in the XML payload
-    if (doctypeRegex.test(req.body) || entityRegex.test(req.body)) {
-      return res.status(400).send("Dangerous XML payload detected");
+    if (req.body.includes("<!ENTITY") || req.body.includes("<!DOCTYPE")) {
+      return res.status(400).send("Invalid XML");
     }
 
     try {
       const xmlDoc = libxmljs.parseXml(req.body, {
-        replaceEntities: true,
-        recover: true,
-        nonet: true,
-        noent: true,
+        replaceEntities: false,
+        recover: false,
+        nonet: true
       });
 
       console.log("Received XML data from XMLon:", xmlDoc.toString());
@@ -96,7 +92,7 @@ app.post("/ufo", (req, res) => {
       }
     } catch (error) {
       console.error("XML parsing or validation error:", error.message);
-      res.status(400).send("Invalid XML: " + error.message);
+      res.status(400).send("Invalid XML");
     }
   } else {
     res.status(405).send("Unsupported content type");
