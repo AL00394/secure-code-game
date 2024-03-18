@@ -44,6 +44,10 @@ app.post("/ufo", (req, res) => {
     console.log("Received JSON data:", req.body);
     res.status(200).json({ ufo: "Received JSON data from an unknown planet." });
   } else if (contentType === "application/xml") {
+    // Check if req.body is a string
+    if (typeof req.body !== "string") {
+      return res.status(400).send("Invalid XML payload");
+    }
     // Check for dangerous entities in the XML payload
     if (req.body.includes("<!ENTITY") || req.body.includes("<!DOCTYPE")) {
       return res.status(400).send("Invalid XML");
