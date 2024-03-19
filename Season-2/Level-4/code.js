@@ -23,6 +23,17 @@ app.use(bodyParser.text({ type: "application/xml" }));
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
+const uploadDir = path.join(__dirname, 'uploads');
+
+// set up rate limiter: maximum of five requests per minute
+var RateLimit = require('express-rate-limit');
+var limiter = RateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // max 100 requests per windowMs
+});
+
+// apply rate limiter to all requests
+app.use(limiter);
 
 app.post("/ufo/upload", upload.single("file"), (req, res) => {
   if (!req.file) {
@@ -31,11 +42,27 @@ app.post("/ufo/upload", upload.single("file"), (req, res) => {
 
   console.log("Received uploaded file:", req.file.originalname);
 
-  const uploadedFilePath = path.join(__dirname, req.file.originalname);
+  // ファイル名から特殊文字を除去
+  const sanitizedFileName = sanitizeFilename(req.file.originalname);
+
+  // アップロードディレクトリ内のファイルパスを構築
+  const uploadedFilePath = path.join(uploadDir, sanitizedFileName);
+
+  // アップロードディレクトリ内に含まれることを確認
+  const resolvedPath = path.resolve(uploadedFilePath);
+  if (!resolvedPath.startsWith(path.resolve(uploadDir) + path.sep)) {
+    return res.status(403).send("Invalid file path");
+  }
+
   fs.writeFileSync(uploadedFilePath, req.file.buffer);
 
   res.status(200).send("File uploaded successfully.");
 });
+
+// sanitize-filenameライブラリを使ってファイル名から特殊文字を除去する関数
+function sanitizeFilename(filename) {
+  return sanitizeFilename(filename, { replacement: '_' });
+}
 
 app.post("/ufo", (req, res) => {
   const contentType = req.headers["content-type"];
