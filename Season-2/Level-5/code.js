@@ -15,6 +15,11 @@ var CryptoAPI = (function() {
 			size: 20,
 			block: 64,
 			hash: function(s) {
+				// 入力値の型チェック
+                if (typeof s !== 'string') {
+                    throw new Error('Input must be a string');
+                }
+				
 				var len = (s += '\x80').length,
 					blocks = len >> 6,
 					chunk = len & 63,
@@ -56,3 +61,6 @@ var CryptoAPI = (function() {
 
 	return API; // End body of anonymous function
 })(); // End "CryptoAPI"
+
+Object.freeze(CryptoAPI.sha1);
+Object.freeze(Array.prototype)
